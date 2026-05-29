@@ -831,7 +831,7 @@ goTo('select');
     name: 'Cumple Gamer',
     short_name: 'CumpleGamer',
     description: 'Registro de jornada laboral',
-    start_url: './',
+    start_url: '/calculodehorastrabajadas/',
     display: 'standalone',
     background_color: '#1A0030',
     theme_color: '#1A0030',
@@ -850,27 +850,11 @@ goTo('select');
   var bIcon = document.getElementById('banner-icon');
   if(bIcon) bIcon.src = LOGO;
 
-  // Register service worker
+  // Register service worker from file (required for GitHub Pages)
   if('serviceWorker' in navigator){
-    var swCode = `
-const CACHE = 'cumple-gamer-v1';
-const ASSETS = ['/'];
-self.addEventListener('install', e => {
-  self.skipWaiting();
-});
-self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
-});
-self.addEventListener('fetch', e => {
-  if(e.request.url.includes('script.google.com') || e.request.url.includes('fonts.g')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('')));
-    return;
-  }
-});
-`;
-    var swBlob = new Blob([swCode], {type:'text/javascript'});
-    var swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl, {scope:'./'}).catch(function(){});
+    navigator.serviceWorker.register('./sw.js', {scope:'/calculodehorastrabajadas/'})
+      .then(function(){ console.log('SW registrado'); })
+      .catch(function(e){ console.log('SW error:', e); });
   }
 })();
 
