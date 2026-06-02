@@ -354,8 +354,21 @@ function lsDel(k){localStorage.removeItem('cg:'+k);}
 function getCachedPin(u){return lsGet('pin:'+u);}
 function setCachedPin(u,p){lsSet('pin:'+u,p);}
 function hasCachedPin(u){return getCachedPin(u)!==null;}
-function getRegistroLocal(u){return lsGet('reg:'+u)||null;}
-function setRegistroLocal(u,d){lsSet('reg:'+u,d);}
+function getRegistroLocal(u){
+  var r=lsGet('reg:'+u);
+  if(!r) return null;
+  // Si el registro es de otro dia, ignorarlo y limpiar
+  if(r.fecha && r.fecha !== fechaHoy()){
+    lsDel('reg:'+u);
+    return null;
+  }
+  return r;
+}
+function setRegistroLocal(u,d){
+  // Guardar siempre con la fecha del dia de entrada
+  if(!d.fecha) d.fecha = fechaHoy();
+  lsSet('reg:'+u,d);
+}
 function delRegistroLocal(u){lsDel('reg:'+u);}
 
 function minExtPay(m){if(m<=0)return 0;if(m<=20)return 1700;if(m<=40)return 3300;return 5000;}
@@ -610,7 +623,7 @@ async function guardarEntrada(){
   var m=EQUIPO[uid];
   try{
     await api('guardarEntrada',{uid:uid,nombre:m.nombre,tipo:m.tipo,entrada:entrada,fecha:fechaHoy()});
-    setRegistroLocal(uid,{entrada:entrada,salida:null});
+    setRegistroLocal(uid,{entrada:entrada,salida:null,fecha:fechaHoy()});
     loadEl.style.display='none';
     okEl.textContent='Entrada registrada a las '+entrada;okEl.classList.add('show');
     setTimeout(function(){showPanelSalida(entrada);},800);
@@ -658,7 +671,7 @@ async function guardarSalida(){
     await api('guardarSalida',{uid:uid,nombre:m.nombre,tipo:m.tipo,
       entrada:entrada,salida:salida,fecha:fechaHoy(),
       h:r.h,m:r.m,hx:r.hx,mx:r.mx,pay:r.pay,'super12':r.super12});
-    var saved=Object.assign({entrada:entrada,salida:salida},r);
+    var reg2=getRegistroLocal(uid);var saved=Object.assign({entrada:entrada,salida:salida,fecha:reg2&&reg2.fecha?reg2.fecha:fechaHoy()},r);
     setRegistroLocal(uid,saved);
     loadEl.style.display='none';
     okEl.textContent='Salida registrada. Hasta pronto!';okEl.classList.add('show');
