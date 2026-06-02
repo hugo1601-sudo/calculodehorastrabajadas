@@ -357,16 +357,26 @@ function hasCachedPin(u){return getCachedPin(u)!==null;}
 function getRegistroLocal(u){
   var r=lsGet('reg:'+u);
   if(!r) return null;
-  // Si el registro es de otro dia, ignorarlo y limpiar
-  if(r.fecha && r.fecha !== fechaHoy()){
+  var hoy=fechaHoy();
+  // Si tiene fecha y no coincide con hoy -> limpiar
+  if(r.fecha && r.fecha !== hoy){
     lsDel('reg:'+u);
     return null;
+  }
+  // Si no tiene fecha, comparar por timestamp de guardado
+  if(!r.fecha && r.savedAt){
+    var savedDate=new Date(r.savedAt);
+    var d=new Date();
+    if(savedDate.getDate()!==d.getDate()||savedDate.getMonth()!==d.getMonth()||savedDate.getFullYear()!==d.getFullYear()){
+      lsDel('reg:'+u);
+      return null;
+    }
   }
   return r;
 }
 function setRegistroLocal(u,d){
-  // Guardar siempre con la fecha del dia de entrada
   if(!d.fecha) d.fecha = fechaHoy();
+  d.savedAt = new Date().toISOString();
   lsSet('reg:'+u,d);
 }
 function delRegistroLocal(u){lsDel('reg:'+u);}
@@ -387,7 +397,13 @@ function calcular(entrada,salida,tipo){
 }
 function fmt(n){return '$'+Math.round(n).toLocaleString('es-CL');}
 function fmtH(h,m){return h+'h'+(m>0?' '+m+'min':'');}
-function fechaHoy(){return new Date().toLocaleDateString('es-CL');}
+function fechaHoy(){
+  var d=new Date();
+  var dd=String(d.getDate()).padStart(2,'0');
+  var mm=String(d.getMonth()+1).padStart(2,'0');
+  var yyyy=d.getFullYear();
+  return dd+'/'+mm+'/'+yyyy;
+}
 
 function hashPin(pin){
   var hash=0,str='cg_salt_'+pin+'_2024';
