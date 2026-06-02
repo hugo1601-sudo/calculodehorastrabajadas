@@ -578,7 +578,7 @@ function setStepTab(active){
   }
 }
 
-function showColab(uid){
+async function showColab(uid){
   var m=EQUIPO[uid];
   document.getElementById('colab-name').textContent=m.nombre;
   document.getElementById('colab-role').textContent=
@@ -593,11 +593,37 @@ function showColab(uid){
     document.getElementById(id).classList.remove('show');
   });
   document.getElementById('colab-result').classList.remove('show');
+  goTo('colab');
+
+  // Mostrar spinner mientras sincroniza con servidor
+  document.getElementById('panel-entrada').style.display='block';
+  document.getElementById('panel-entrada').innerHTML='<div class="loading-msg"><span class="spinner"></span>Sincronizando...</div>';
+
+  // Sincronizar estado real desde Sheets (fuente de verdad)
+  try {
+    var r = await api('getRegistroHoy', {uid: uid, fecha: fechaHoy()});
+    if (r.registro) {
+      // Hay registro en Sheets — sincronizar con local
+      setRegistroLocal(uid, r.registro);
+    }
+  } catch(e) {
+    // Sin conexion — usar local como fallback
+  }
+
+  // Restaurar panel-entrada HTML
+  document.getElementById('panel-entrada').innerHTML =
+    '<div class="card-title">Marcar entrada</div>'
+    +'<div class="card-sub">Registra tu hora de inicio de jornada</div>'
+    +'<div class="field"><label for="inp-entrada">Hora de entrada</label><input type="time" id="inp-entrada"/></div>'
+    +'<div class="error" id="entrada-err"></div>'
+    +'<div class="success-msg" id="entrada-ok"></div>'
+    +'<div class="loading-msg" id="entrada-loading" style="display:none"><span class="spinner"></span>Guardando...</div>'
+    +'<button class="btn btn-primary mt-16" onclick="guardarEntrada()">Marcar entrada</button>';
+
   var reg=getRegistroLocal(uid);
   if(reg&&reg.salida){showCompleto(reg);}
   else if(reg&&reg.entrada){showPanelSalida(reg.entrada);}
   else{document.getElementById('panel-entrada').style.display='block';setStepTab('entrada');}
-  goTo('colab');
 }
 
 function showPanelSalida(horaEntrada){
@@ -638,6 +664,19 @@ async function guardarEntrada(){
   loadEl.style.display='block';
   var m=EQUIPO[uid];
   try{
+    // Verificar primero si ya hay registro hoy en el servidor
+    var check = await api('getRegistroHoy',{uid:uid,fecha:fechaHoy()});
+    if(check.registro && check.registro.entrada){
+      loadEl.style.display='none';
+      // Ya existe — sincronizar estado local y mostrar panel correcto
+      setRegistroLocal(uid, check.registro);
+      if(check.registro.salida){
+        showCompleto(check.registro);
+      } else {
+        showPanelSalida(check.registro.entrada);
+      }
+      return;
+    }
     await api('guardarEntrada',{uid:uid,nombre:m.nombre,tipo:m.tipo,entrada:entrada,fecha:fechaHoy()});
     setRegistroLocal(uid,{entrada:entrada,salida:null,fecha:fechaHoy()});
     loadEl.style.display='none';
