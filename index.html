@@ -405,6 +405,23 @@ function fechaHoy(){
   return dd+'/'+mm+'/'+yyyy;
 }
 
+// Sanitiza hora: acepta "09:30", Date objects, o "Sat Dec 30 1899 09:30:00..."
+function sanitizeHora(val){
+  if(!val) return '';
+  if(typeof val === 'object' && val instanceof Date){
+    return String(val.getHours()).padStart(2,'0')+':'+String(val.getMinutes()).padStart(2,'0');
+  }
+  var s = String(val).trim();
+  // Si ya es HH:MM formato correcto
+  if(/^\d{1,2}:\d{2}$/.test(s)) return s.length===4?'0'+s:s;
+  // Si es un string de fecha completo (ej: "Sat Dec 30 1899 09:30:00 GMT...")
+  var d = new Date(s);
+  if(!isNaN(d.getTime())){
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  return s;
+}
+
 // Convierte "DD/MM/YYYY" a "Lunes 02 de Junio de 2026"
 function fechaLarga(str){
   if(!str) return fechaHoy();
@@ -615,6 +632,9 @@ async function showColab(uid){
   try {
     var r = await api('getRegistroHoy', {uid: uid, fecha: fechaHoy()});
     if (r.registro) {
+      // Sanitizar horas que pueden llegar como Date objects desde Sheets
+      if(r.registro.entrada) r.registro.entrada = sanitizeHora(r.registro.entrada);
+      if(r.registro.salida)  r.registro.salida  = sanitizeHora(r.registro.salida);
       // Hay registro en Sheets — sincronizar con local
       setRegistroLocal(uid, r.registro);
     }
@@ -639,6 +659,7 @@ async function showColab(uid){
 }
 
 function showPanelSalida(horaEntrada){
+  horaEntrada = sanitizeHora(horaEntrada);
   document.getElementById('panel-entrada').style.display='none';
   document.getElementById('panel-salida').style.display='block';
   document.getElementById('panel-completo').style.display='none';
@@ -657,8 +678,8 @@ function showCompleto(reg){
   var fLarga = fechaLarga(reg.fecha || fechaHoy());
   var subEl = document.getElementById('resumen-fecha-larga');
   if(subEl) subEl.textContent = fLarga;
-  document.getElementById('resumen-entrada').textContent=reg.entrada;
-  document.getElementById('resumen-salida').textContent=reg.salida;
+  document.getElementById('resumen-entrada').textContent=sanitizeHora(reg.entrada);
+  document.getElementById('resumen-salida').textContent=sanitizeHora(reg.salida);
   document.getElementById('resumen-pago').textContent=fmt(reg.pay);
   var tipo=EQUIPO[currentUser]?EQUIPO[currentUser].tipo:'animador';
   var desg=fmt(PAGO_BASE)+' base';
