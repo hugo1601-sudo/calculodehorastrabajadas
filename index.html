@@ -257,7 +257,7 @@ select:focus,input:focus{outline:none;border-color:var(--yellow);box-shadow:0 0 
     <div id="panel-completo" style="display:none;text-align:center">
       <div style="font-size:44px;margin-bottom:10px">&#x1F3AE;</div>
       <div class="card-title">Jornada completa!</div>
-      <div class="card-sub">Tu registro fue guardado en la planilla.</div>
+      <div class="card-sub" id="resumen-fecha-larga">Tu registro fue guardado en la planilla.</div>
       <div style="background:rgba(0,0,0,.28);border:1.5px solid rgba(240,180,0,.18);border-radius:9px;padding:15px;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;margin-bottom:7px">
           <span style="font-size:12px;color:rgba(255,255,255,.42)">Entrada</span>
@@ -403,6 +403,18 @@ function fechaHoy(){
   var mm=String(d.getMonth()+1).padStart(2,'0');
   var yyyy=d.getFullYear();
   return dd+'/'+mm+'/'+yyyy;
+}
+
+// Convierte "DD/MM/YYYY" a "Lunes 02 de Junio de 2026"
+function fechaLarga(str){
+  if(!str) return fechaHoy();
+  // Si no tiene formato DD/MM/YYYY, usar fecha de hoy
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(str)) str = fechaHoy();
+  var p=str.split('/');
+  var d=new Date(p[2], p[1]-1, p[0]);
+  var dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return dias[d.getDay()]+' '+String(d.getDate()).padStart(2,'0')+' de '+meses[d.getMonth()]+' de '+d.getFullYear();
 }
 
 function hashPin(pin){
@@ -630,7 +642,9 @@ function showPanelSalida(horaEntrada){
   document.getElementById('panel-entrada').style.display='none';
   document.getElementById('panel-salida').style.display='block';
   document.getElementById('panel-completo').style.display='none';
-  document.getElementById('badge-hora-entrada').textContent=horaEntrada;
+  var fechaActual = getRegistroLocal(currentUser);
+  var fStr = fechaActual && fechaActual.fecha ? fechaActual.fecha : fechaHoy();
+  document.getElementById('badge-hora-entrada').textContent=fechaLarga(fStr)+' · '+horaEntrada;
   document.getElementById('inp-salida').value='';
   document.getElementById('colab-result').classList.remove('show');
   setStepTab('salida');
@@ -640,6 +654,9 @@ function showCompleto(reg){
   document.getElementById('panel-entrada').style.display='none';
   document.getElementById('panel-salida').style.display='none';
   document.getElementById('panel-completo').style.display='block';
+  var fLarga = fechaLarga(reg.fecha || fechaHoy());
+  var subEl = document.getElementById('resumen-fecha-larga');
+  if(subEl) subEl.textContent = fLarga;
   document.getElementById('resumen-entrada').textContent=reg.entrada;
   document.getElementById('resumen-salida').textContent=reg.salida;
   document.getElementById('resumen-pago').textContent=fmt(reg.pay);
