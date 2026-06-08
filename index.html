@@ -359,20 +359,12 @@ function hasCachedPin(u){return getCachedPin(u)!==null;}
 function getRegistroLocal(u){
   var r=lsGet('reg:'+u);
   if(!r) return null;
-  var hoy=fechaHoy();
-  // Si tiene fecha y no coincide con hoy -> limpiar
-  if(r.fecha && r.fecha !== hoy){
+  // Solo expirar registros COMPLETOS (con salida) de otro dia
+  // Los registros con solo entrada NO se expiran (jornada puede cruzar medianoche)
+  if(r.salida && r.fecha && r.fecha !== fechaHoy()){
+    // Jornada completa de otro dia — limpiar para permitir nueva jornada
     lsDel('reg:'+u);
     return null;
-  }
-  // Si no tiene fecha, comparar por timestamp de guardado
-  if(!r.fecha && r.savedAt){
-    var savedDate=new Date(r.savedAt);
-    var d=new Date();
-    if(savedDate.getDate()!==d.getDate()||savedDate.getMonth()!==d.getMonth()||savedDate.getFullYear()!==d.getFullYear()){
-      lsDel('reg:'+u);
-      return null;
-    }
   }
   return r;
 }
@@ -425,6 +417,14 @@ function sanitizeHora(val){
 }
 
 // Convierte "DD/MM/YYYY" a "Lunes 02 de Junio de 2026"
+function fechaAyer(){
+  var d=new Date();
+  d.setDate(d.getDate()-1);
+  var dd=String(d.getDate()).padStart(2,'0');
+  var mm=String(d.getMonth()+1).padStart(2,'0');
+  return dd+'/'+mm+'/'+d.getFullYear();
+}
+
 function fechaLarga(str){
   if(!str) return fechaHoy();
   // Si no tiene formato DD/MM/YYYY, usar fecha de hoy
@@ -633,6 +633,13 @@ async function showColab(uid){
   // Sincronizar estado real desde Sheets (fuente de verdad)
   try {
     var r = await api('getRegistroHoy', {uid: uid, fecha: fechaHoy()});
+    // Si no hay registro hoy, verificar si hay jornada en curso de ayer
+    if(!r.registro || !r.registro.entrada){
+      var rAyer = await api('getRegistroHoy', {uid: uid, fecha: fechaAyer()});
+      if(rAyer.registro && rAyer.registro.entrada && !rAyer.registro.salida){
+        r = rAyer;
+      }
+    }
     if (r.registro) {
       // Sanitizar horas que pueden llegar como Date objects desde Sheets
       if(r.registro.entrada) r.registro.entrada = sanitizeHora(r.registro.entrada);
@@ -706,6 +713,14 @@ async function guardarEntrada(){
   try{
     // Verificar primero si ya hay registro hoy en el servidor
     var check = await api('getRegistroHoy',{uid:uid,fecha:fechaHoy()});
+    // También verificar si hay jornada en curso del dia anterior
+    if(!check.registro || !check.registro.entrada){
+      var ayer=fechaAyer();
+      var checkAyer=await api('getRegistroHoy',{uid:uid,fecha:ayer});
+      if(checkAyer.registro && checkAyer.registro.entrada && !checkAyer.registro.salida){
+        check=checkAyer;
+      }
+    }
     if(check.registro && check.registro.entrada){
       loadEl.style.display='none';
       // Ya existe — sincronizar estado local y mostrar panel correcto
@@ -763,8 +778,9 @@ async function guardarSalida(){
   loadEl.style.display='block';
   var m=EQUIPO[uid];
   try{
+    var fechaJornada=reg&&reg.fecha?reg.fecha:fechaHoy();
     await api('guardarSalida',{uid:uid,nombre:m.nombre,tipo:m.tipo,
-      entrada:entrada,salida:salida,fecha:fechaHoy(),
+      entrada:entrada,salida:salida,fecha:fechaJornada,
       h:r.h,m:r.m,hx:r.hx,mx:r.mx,pay:r.pay,'super12':r.super12});
     var reg2=getRegistroLocal(uid);var saved=Object.assign({entrada:entrada,salida:salida,fecha:reg2&&reg2.fecha?reg2.fecha:fechaHoy()},r);
     setRegistroLocal(uid,saved);
