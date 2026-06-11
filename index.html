@@ -124,6 +124,23 @@ select:focus,input:focus{outline:none;border-color:var(--yellow);box-shadow:0 0 
 .hist-total-item{text-align:center}
 .hist-total-item .htl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .hist-total-item .htv{font-family:'Bangers',cursive;font-size:22px;color:var(--yellow)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#2A0048;border:1.5px solid rgba(240,180,0,.3);border-radius:var(--radius);padding:24px;width:100%;max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.modal-title{font-family:'Bangers',cursive;font-size:22px;letter-spacing:1.5px;color:var(--yellow);margin-bottom:4px}
+.modal-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:18px}
+.user-mgmt-list{width:100%;max-width:600px;display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.user-mgmt-row{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:var(--radius);padding:12px 15px;display:flex;align-items:center;gap:10px}
+.user-mgmt-info{flex:1;min-width:0}
+.user-mgmt-name{font-weight:800;font-size:14px;color:#fff}
+.user-mgmt-role{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.role-pill{display:inline-block;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;cursor:pointer;transition:opacity .15s}
+.role-pill:hover{opacity:.8}
+.pill-conductor{background:rgba(0,140,160,.3);color:var(--teal-light);border:1px solid rgba(0,200,220,.3)}
+.pill-animador{background:rgba(240,120,20,.28);color:#FFAA60;border:1px solid rgba(240,120,20,.3)}
+.pill-inactivo{background:rgba(255,255,255,.08);color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1)}
+.admin-tabs{display:flex;gap:0;border-radius:9px;overflow:hidden;border:1px solid rgba(240,180,0,.2);margin-bottom:16px;width:100%;max-width:600px}
+.admin-tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:800;cursor:pointer;color:rgba(255,255,255,.45);transition:background .15s,color .15s}
+.admin-tab.active{background:rgba(240,180,0,.15);color:var(--yellow)}
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(240,180,0,.25);border-top-color:var(--yellow);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-msg{font-size:13px;color:rgba(255,255,255,.5);text-align:center;padding:16px}
@@ -307,6 +324,13 @@ select:focus,input:focus{outline:none;border-color:var(--yellow);box-shadow:0 0 
     <img class="logo-small" id="logo6" alt="Cumple Gamer" style="width:85px"/>
     <button class="btn-ghost" onclick="logout()" style="width:auto;padding:8px 14px;border-radius:9px;font-size:13px;font-family:Nunito,sans-serif;font-weight:800">Salir</button>
   </div>
+  <div class="admin-tabs">
+    <div class="admin-tab active" id="atab-jornada" onclick="adminTab('jornada')">&#x1F4CB; Jornadas</div>
+    <div class="admin-tab" id="atab-usuarios" onclick="adminTab('usuarios')">&#x1F465; Equipo</div>
+  </div>
+
+  <!-- PANEL JORNADAS -->
+  <div id="apanel-jornada" style="width:100%;display:flex;flex-direction:column;align-items:center">
   <div style="width:100%;max-width:600px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
     <div class="section-label" style="margin:0">Conductores</div>
     <input type="date" id="admin-fecha" onchange="renderAdmin()" style="font-size:12px;padding:6px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(240,180,0,.25);border-radius:7px;color:#fff"/>
@@ -320,6 +344,46 @@ select:focus,input:focus{outline:none;border-color:var(--yellow);box-shadow:0 0 
   <div class="admin-btns">
     <button class="btn btn-ghost" onclick="copiarResumen()" style="flex:1;font-family:Nunito,sans-serif;font-size:13px;font-weight:800">Copiar resumen</button>
     <button class="btn btn-danger" onclick="limpiarDia()" style="flex:1;font-family:Nunito,sans-serif;font-size:13px;font-weight:800">Limpiar dia</button>
+  </div>
+  </div><!-- end apanel-jornada -->
+
+  <!-- PANEL EQUIPO -->
+  <div id="apanel-usuarios" style="width:100%;display:none;flex-direction:column;align-items:center">
+    <div style="width:100%;max-width:600px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-label" style="margin:0">Miembros del equipo</div>
+      <button class="btn-ghost" onclick="abrirModalUsuario(null)" style="width:auto;padding:7px 14px;border-radius:8px;font-size:12px;font-family:Nunito,sans-serif;font-weight:800;letter-spacing:0">+ Agregar</button>
+    </div>
+    <div class="user-mgmt-list" id="user-mgmt-list"></div>
+  </div>
+
+  <!-- MODAL USUARIO -->
+  <div class="modal-overlay" id="modal-usuario" style="display:none" onclick="cerrarModalUsuario(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title" id="modal-titulo">Nuevo miembro</div>
+      <div class="modal-sub" id="modal-sub">Completa los datos del nuevo integrante</div>
+      <input type="hidden" id="modal-uid-original"/>
+      <div class="field">
+        <label>Nombre</label>
+        <input type="text" id="modal-nombre" placeholder="Ej: Pedro"/>
+      </div>
+      <div class="field">
+        <label>Rol</label>
+        <select id="modal-rol">
+          <option value="conductor">Conductor</option>
+          <option value="animador">Animador / Acompañante</option>
+        </select>
+      </div>
+      <div class="field" id="modal-estado-field" style="display:none">
+        <label>Estado</label>
+        <select id="modal-estado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+      <div class="error" id="modal-err"></div>
+      <button class="btn btn-primary" style="margin-top:4px" onclick="guardarUsuario()">Guardar</button>
+      <button class="btn btn-ghost" style="margin-top:8px" onclick="cerrarModalUsuario()">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -463,7 +527,7 @@ function goTo(name){
 function buildGrid(){
   var grid=document.getElementById('user-grid');
   grid.innerHTML='';
-  var keys=Object.keys(EQUIPO).filter(function(k){return k!=='admin';});
+  var keys=Object.keys(EQUIPO).filter(function(k){return k!=='admin' && EQUIPO[k].activo!==false;});
   keys.push('admin');
   keys.forEach(function(uid){
     var m=EQUIPO[uid];
@@ -954,6 +1018,148 @@ function logout(){
   buildGrid();goTo('select');
 }
 
+
+// ═══════════════ EQUIPO DINÁMICO ═══════════════
+// EQUIPO se carga desde localStorage (puede ser editado por admin)
+// Al iniciar, si no hay nada en LS usar el EQUIPO hardcoded como base
+function initEquipo(){
+  var guardado = lsGet('equipo');
+  if(guardado && Object.keys(guardado).length > 0){
+    // Merge: siempre preservar admin
+    guardado['admin'] = {nombre:'Admin',tipo:'admin',initials:'AD'};
+    Object.assign(EQUIPO, guardado);
+  } else {
+    // Primera vez: guardar EQUIPO base en LS
+    var base = {};
+    Object.keys(EQUIPO).forEach(function(k){ if(k!=='admin') base[k]=EQUIPO[k]; });
+    lsSet('equipo', base);
+  }
+}
+
+function guardarEquipoLS(){
+  var base = {};
+  Object.keys(EQUIPO).forEach(function(k){ if(k!=='admin') base[k]=EQUIPO[k]; });
+  lsSet('equipo', base);
+}
+
+function generarUid(nombre){
+  return nombre.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]/g,'')
+    .substring(0,12) + '_' + Date.now().toString(36).slice(-3);
+}
+
+function generarInitials(nombre){
+  var parts = nombre.trim().split(' ');
+  if(parts.length >= 2) return (parts[0][0]+parts[1][0]).toUpperCase();
+  return nombre.substring(0,2).toUpperCase();
+}
+
+// ── ADMIN TABS ──
+function adminTab(tab){
+  ['jornada','usuarios'].forEach(function(t){
+    document.getElementById('atab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('apanel-'+t).style.display = t===tab ? 'flex' : 'none';
+  });
+  if(tab==='usuarios') renderUserMgmt();
+  if(tab==='jornada') renderAdmin();
+}
+
+// ── RENDER USER MANAGEMENT ──
+function renderUserMgmt(){
+  var list = document.getElementById('user-mgmt-list');
+  var members = Object.keys(EQUIPO).filter(function(k){return k!=='admin';});
+  list.innerHTML = members.map(function(uid){
+    var m = EQUIPO[uid];
+    var inactivo = m.activo === false;
+    var pillCls = inactivo ? 'pill-inactivo' : (m.tipo==='conductor'?'pill-conductor':'pill-animador');
+    var rolLbl = inactivo ? 'Inactivo' : (m.tipo==='conductor'?'Conductor':'Animador');
+    return '<div class="user-mgmt-row">'
+      +'<div class="avatar '+(m.tipo==='conductor'?'av-c':'av-a')+'" style="width:38px;height:38px;font-size:14px;opacity:'+(inactivo?.4:1)+'">'+m.initials+'</div>'
+      +'<div class="user-mgmt-info">'
+        +'<div class="user-mgmt-name" style="opacity:'+(inactivo?.4:1)+'">'+m.nombre+'</div>'
+        +'<div class="user-mgmt-role"><span class="role-pill '+pillCls+'">'+rolLbl+'</span></div>'
+      +'</div>'
+      +'<button class="btn-ghost" onclick="abrirModalUsuario(''+uid+'')" '
+        +'style="width:auto;padding:6px 12px;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;font-weight:800;letter-spacing:0">'
+        +'Editar</button>'
+      +'</div>';
+  }).join('');
+}
+
+// ── MODAL ──
+function abrirModalUsuario(uid){
+  var modal = document.getElementById('modal-usuario');
+  var errEl = document.getElementById('modal-err');
+  errEl.classList.remove('show');
+  document.getElementById('modal-estado-field').style.display = uid ? 'block' : 'none';
+
+  if(uid){
+    var m = EQUIPO[uid];
+    document.getElementById('modal-titulo').textContent = 'Editar miembro';
+    document.getElementById('modal-sub').textContent = 'Modifica los datos de '+m.nombre;
+    document.getElementById('modal-uid-original').value = uid;
+    document.getElementById('modal-nombre').value = m.nombre;
+    document.getElementById('modal-rol').value = m.tipo;
+    document.getElementById('modal-estado').value = m.activo===false ? 'inactivo' : 'activo';
+  } else {
+    document.getElementById('modal-titulo').textContent = 'Nuevo miembro';
+    document.getElementById('modal-sub').textContent = 'Completa los datos del nuevo integrante';
+    document.getElementById('modal-uid-original').value = '';
+    document.getElementById('modal-nombre').value = '';
+    document.getElementById('modal-rol').value = 'animador';
+    document.getElementById('modal-estado').value = 'activo';
+  }
+  modal.style.display = 'flex';
+}
+
+function cerrarModalUsuario(e){
+  if(e && e.target !== document.getElementById('modal-usuario')) return;
+  document.getElementById('modal-usuario').style.display = 'none';
+}
+
+function guardarUsuario(){
+  var nombre = document.getElementById('modal-nombre').value.trim();
+  var rol    = document.getElementById('modal-rol').value;
+  var estado = document.getElementById('modal-estado').value;
+  var uidOrig = document.getElementById('modal-uid-original').value;
+  var errEl  = document.getElementById('modal-err');
+  errEl.classList.remove('show');
+
+  if(!nombre){
+    errEl.textContent = 'Ingresa un nombre.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if(uidOrig){
+    // Editar existente
+    EQUIPO[uidOrig].nombre  = nombre;
+    EQUIPO[uidOrig].tipo    = rol;
+    EQUIPO[uidOrig].initials = generarInitials(nombre);
+    EQUIPO[uidOrig].activo  = estado === 'activo';
+  } else {
+    // Nuevo usuario
+    var uid = generarUid(nombre);
+    EQUIPO[uid] = {
+      nombre:   nombre,
+      tipo:     rol,
+      initials: generarInitials(nombre),
+      activo:   true
+    };
+  }
+
+  guardarEquipoLS();
+  document.getElementById('modal-usuario').style.display = 'none';
+  renderUserMgmt();
+  buildGrid(); // refresh login grid
+}
+
+// ── FILTER INACTIVE in buildGrid ──
+// Override buildGrid to skip inactive users
+var _origBuildGrid = null; // will be set after buildGrid defined
+
+initEquipo();
 buildGrid();
 goTo('select');
 
