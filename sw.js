@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cumple-gamer-v10';
+const CACHE_NAME = 'cumple-gamer-v11';
 
 self.addEventListener('install', event => {
   self.skipWaiting();

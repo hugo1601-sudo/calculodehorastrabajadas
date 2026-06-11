@@ -275,6 +275,7 @@ select:focus,input:focus{outline:none;border-color:var(--yellow);box-shadow:0 0 
       </div>
       <button class="btn btn-ghost" onclick="verHistorial()" style="margin-bottom:8px">Ver mi historial</button>
     </div>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="verHistorial()">&#x1F4CA; Ver mi historial</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="logout()">Cerrar sesion</button>
   </div>
 </div>
@@ -793,7 +794,11 @@ async function guardarSalida(){
   }
 }
 
-async function verHistorial(){goTo('historial');cambiarPeriodo('semana');}
+async function verHistorial(){
+  // Accessible from any state — doesn't require active jornada
+  goTo('historial');
+  cambiarPeriodo('semana');
+}
 
 function cambiarPeriodo(p){
   periodoActual=p;
@@ -810,7 +815,9 @@ async function cargarHistorial(periodo){
   document.getElementById('ht-dias').textContent='-';
   document.getElementById('ht-horas').textContent='-';
   try{
+    console.log('Cargando historial uid:', currentUser, 'periodo:', periodo);
     var r=await api('getHistorial',{uid:currentUser,periodo:periodo});
+    console.log('Historial response:', JSON.stringify(r).slice(0,200));
     var registros=r.registros,totales=r.totales;
     document.getElementById('ht-pago').textContent=fmt(totales.pago);
     document.getElementById('ht-dias').textContent=totales.dias;
@@ -838,7 +845,9 @@ async function renderAdmin(){
   var fechaInput=document.getElementById('admin-fecha');
   var iso=fechaInput.value||new Date().toISOString().slice(0,10);
   var p=iso.split('-');
+  // Convert YYYY-MM-DD to DD/MM/YYYY
   var fechaCL=p[2]+'/'+p[1]+'/'+p[0];
+  console.log('Admin buscando fecha:', fechaCL);
   var cond=Object.keys(EQUIPO).filter(function(k){return EQUIPO[k].tipo==='conductor';});
   var anim=Object.keys(EQUIPO).filter(function(k){return EQUIPO[k].tipo==='animador';});
   renderGroupAdmin('admin-conductores',cond,[]);
