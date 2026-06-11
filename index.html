@@ -818,24 +818,30 @@ async function cargarHistorial(periodo){
     console.log('Cargando historial uid:', currentUser, 'periodo:', periodo);
     var r=await api('getHistorial',{uid:currentUser,periodo:periodo});
     console.log('Historial response:', JSON.stringify(r).slice(0,200));
-    var registros=r.registros,totales=r.totales;
-    document.getElementById('ht-pago').textContent=fmt(totales.pago);
-    document.getElementById('ht-dias').textContent=totales.dias;
-    document.getElementById('ht-horas').textContent=Math.round(totales.horas)+'h';
+    var registros=(r&&r.registros)||[];
+    var totales=(r&&r.totales)||{pago:0,horas:0,dias:0};
+    document.getElementById('ht-pago').textContent=fmt(totales.pago||0);
+    document.getElementById('ht-dias').textContent=totales.dias||0;
+    document.getElementById('ht-horas').textContent=Math.round(totales.horas||0)+'h';
     if(!registros.length){
       listEl.innerHTML='<div class="hist-empty">Sin registros para este periodo</div>';return;
     }
     listEl.innerHTML=registros.map(function(reg){
-      var fp=reg.fecha.toString().split('/');
+      if(!reg) return '';
+      var fechaStr = reg.fecha ? String(reg.fecha) : fechaHoy();
+      var fp=fechaStr.split('/');
       var fecha=fp.length===3
         ?new Date(fp[2],fp[1]-1,fp[0]).toLocaleDateString('es-CL',{weekday:'short',day:'numeric',month:'short'})
-        :reg.fecha;
+        :fechaStr;
+      var horaEntrada = sanitizeHora(reg.entrada||'');
+      var horaSalida  = reg.salida ? sanitizeHora(reg.salida) : 'En curso';
+      var pago        = reg.pago ? fmt(reg.pago) : (reg.salida ? fmt(0) : '--');
       return '<div class="hist-row">'
         +'<div><div class="hist-fecha">'+fecha+'</div>'
-        +'<div class="hist-hrs">'+reg.entrada+' a '+reg.salida+' · '+fmtH(+reg.horas,+reg.minutos)+'</div></div>'
-        +'<div class="hist-pay">'+fmt(reg.pago)+'</div>'
+        +'<div class="hist-hrs">'+horaEntrada+' → '+horaSalida+' · '+fmtH(+(reg.horas||0),+(reg.minutos||0))+'</div></div>'
+        +'<div class="hist-pay">'+pago+'</div>'
         +'</div>';
-    }).join('');
+    }).filter(Boolean).join('');
   } catch(e){
     listEl.innerHTML='<div class="hist-empty" style="color:rgba(255,120,120,.7)">Error: '+e.message+'</div>';
   }
