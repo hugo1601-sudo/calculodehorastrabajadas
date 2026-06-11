@@ -1069,22 +1069,32 @@ function adminTab(tab){
 function renderUserMgmt(){
   var list = document.getElementById('user-mgmt-list');
   var members = Object.keys(EQUIPO).filter(function(k){return k!=='admin';});
-  list.innerHTML = members.map(function(uid){
+  list.innerHTML = '';
+  members.forEach(function(uid){
     var m = EQUIPO[uid];
     var inactivo = m.activo === false;
     var pillCls = inactivo ? 'pill-inactivo' : (m.tipo==='conductor'?'pill-conductor':'pill-animador');
     var rolLbl = inactivo ? 'Inactivo' : (m.tipo==='conductor'?'Conductor':'Animador');
-    return '<div class="user-mgmt-row">'
-      +'<div class="avatar '+(m.tipo==='conductor'?'av-c':'av-a')+'" style="width:38px;height:38px;font-size:14px;opacity:'+(inactivo?.4:1)+'">'+m.initials+'</div>'
+    var avCls = m.tipo==='conductor' ? 'av-c' : 'av-a';
+    var opacity = inactivo ? '0.4' : '1';
+    var div = document.createElement('div');
+    div.className = 'user-mgmt-row';
+    div.innerHTML = '<div class="avatar '+avCls+'" style="width:38px;height:38px;font-size:14px;opacity:'+opacity+'">'+m.initials+'</div>'
       +'<div class="user-mgmt-info">'
-        +'<div class="user-mgmt-name" style="opacity:'+(inactivo?.4:1)+'">'+m.nombre+'</div>'
+        +'<div class="user-mgmt-name" style="opacity:'+opacity+'">'+m.nombre+'</div>'
         +'<div class="user-mgmt-role"><span class="role-pill '+pillCls+'">'+rolLbl+'</span></div>'
       +'</div>'
-      +'<button class="btn-ghost" onclick="abrirModalUsuario(''+uid+'')" '
+      +'<button class="btn-ghost edit-user-btn" data-uid="'+uid+'" '
         +'style="width:auto;padding:6px 12px;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;font-weight:800;letter-spacing:0">'
-        +'Editar</button>'
-      +'</div>';
-  }).join('');
+        +'Editar</button>';
+    list.appendChild(div);
+  });
+  // Attach click handlers after rendering
+  list.querySelectorAll('.edit-user-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      abrirModalUsuario(btn.getAttribute('data-uid'));
+    });
+  });
 }
 
 // ── MODAL ──
